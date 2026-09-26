@@ -1,0 +1,2219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3時17分</title>
+
+  <style>
+
+    @font-face {
+      font-family: "DSEG7Classic";
+      src: url("DSEG7Classic-Bold.woff2") format("woff2");
+      font-weight: bold;
+      font-style: normal;
+    }
+
+
+    /* =========================
+       ここは「見た目」担当
+       PCでもスマホでも見やすくなるようにしてあります
+       ========================= */
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #171513;
+      color: #e8e2d8;
+      font-family: sans-serif;
+      line-height: 1.7;
+    }
+
+    .game {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 5vw, 40px);
+      letter-spacing: 0.08em;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+
+    .intro {
+      color: #bcb5aa;
+      margin-bottom: 24px;
+    }
+
+   .room {
+     position: relative;
+     width: 100vw;
+     height: 100vh;
+     overflow: hidden;
+   }
+
+    .object {
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid #4d4841;
+      background: #211e1a;
+      border-radius: 6px;
+    }
+
+    .object-wide {
+      grid-column: 1 / -1;
+    }
+
+    /* 絵そのものをクリック対象にする */
+    .painting-button {
+      display: block;
+      width: min(360px, 100%);
+      margin: 14px auto 0;
+      padding: 0;
+      border: 1px solid #655e55;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .painting-button img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .lock-area {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    input.code {
+      width: 92px;
+      padding: 10px 8px;
+      font-size: 20px;
+      text-align: center;
+      letter-spacing: 5px;
+      background: #11100f;
+      color: #eee;
+      border: 1px solid #70695f;
+      border-radius: 4px;
+    }
+
+    button.action {
+      padding: 10px 14px;
+      font-size: 16px;
+      color: #eee;
+      background: #302c27;
+      border: 1px solid #70695f;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button.action:disabled,
+    input:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .clue {
+      display: none;
+      margin-top: 14px;
+      padding: 12px;
+      background: #151311;
+      border-left: 3px solid #8b8173;
+    }
+
+    /* 絵の拡大画面 */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.88);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-window {
+      width: min(760px, 96vw);
+      max-height: 94vh;
+      overflow: auto;
+      padding: 18px;
+      background: #111;
+      border: 1px solid #555;
+      text-align: center;
+    }
+
+    .modal-image-button {
+      display: block;
+      width: 100%;
+      padding: 0;
+      border: 0;
+      background:  transparent;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .painting-layer {
+      position: relative;
+      display: inline-block;
+    }
+
+    #meltedPaintingOverlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      clip-path: inset(0 0 0% 0);
+      transition: clip-path 2.5s ease-out;
+      display: none;
+    }
+    .painting-blink {
+      animation: paintingBlink 0.35s ease-in-out;
+    }
+
+    @keyframes paintingBlink {
+      0% {
+        opacity: 1;
+      }
+
+      45% {
+        opacity: 0;
+      }
+
+      55% {
+        opacity: 0;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    .modal-image-button img {
+      display: block;
+      width: auto;
+      max-width: 100%;
+      max-height: 72vh;
+      margin: 0 auto;
+    }
+
+    .modal-message {
+      min-height: 2em;
+      margin: 14px 0 0;
+      font-size: 18px;
+    }
+
+    .modal-sub {
+      color: #aaa;
+      font-size: 13px;
+      margin: 8px 0 0;
+    }
+
+
+
+    .hidden-note button {
+      margin-top: 10px;
+    }
+
+    /* ラスト */
+    #ending {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: #000;
+      color: #eee;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .ending-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ending-message {
+      position: absolute;
+      bottom: 5vh;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      z-index: 3;
+      font-size: clamp(18px, 4vw, 28px);
+      letter-spacing: 0.12em;
+    }
+
+    #ghostImage {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      filter: blur(5px);
+      transition: opacity 1s;
+    }
+
+    #ghostImage.visible {
+      opacity: 0.8;
+      filter: blur(3px);
+    }
+
+    #ghostImage.close {
+      opacity: 0.9;
+      filter: blur(1.5px);
+    }
+
+#ending.fade-to-black #ghostImage {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#endingMessage.end-title {
+  opacity: 1;
+  font-size: clamp(32px, 8vw, 60px);
+  letter-spacing: 0.15em;
+  transition: opacity 1.2s ease;
+}
+
+#endingMessage.end-thanks {
+  opacity: 1;
+  font-size: clamp(18px, 4vw, 28px);
+  letter-spacing: 0.12em;
+  transition: opacity 1.0s ease;
+}
+
+#endingMessage.end-title {
+  opacity: 1;
+  font-size: clamp(32px, 8vw, 60px);
+  letter-spacing: 0.15em;
+  transition: opacity 1.2s ease;
+
+  /* ENDを真ん中に */
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+}
+
+#endingThanks {
+  position: absolute;
+  bottom: 5vh;
+  left: 0;
+  width: 100%;
+  text-align: center;
+
+  opacity: 0;
+  font-size: clamp(18px, 4vw, 28px);
+  letter-spacing: 0.12em;
+
+  transition: opacity 1s ease;
+}
+
+#endingThanks.visible {
+  opacity: 1;
+}
+
+    /* 仮のCSS画像：あとでimgに差し替えても、クリック構造はそのまま使えます */
+    .css-picture-button {
+      display: block;
+      width: 100%;
+      padding: 0;
+      border: 0;
+      background:  transparent;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .desk-visual, .bookshelf-visual {
+      position: relative;
+      width: min(360px, 100%);
+      height: 220px;
+      margin: 12px auto 0;
+      overflow: hidden;
+      border: 1px solid #5b544a;
+      background: #171513;
+    }
+
+    .desk-visual::before {
+      content: '';
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      top: 35%;
+      height: 18%;
+      background: #4a3526;
+      border: 4px solid #2b2019;
+      box-shadow: inset 0 -8px 0 #35251d;
+    }
+
+    .desk-visual::after {
+      content: '';
+      position: absolute;
+      left: 17%;
+      right: 17%;
+      bottom: 5%;
+      height: 48%;
+      border-left: 12px solid #38281f;
+      border-right: 12px solid #38281f;
+      box-shadow: inset 90px 0 0 #432f24, inset -90px 0 0 #432f24;
+    }
+
+    .bookshelf-visual {
+      height: 250px;
+      background: #241b17;
+      border: 8px solid #3a2b22;
+      box-shadow: inset 0 0 0 2px #15110f;
+    }
+
+    .bookshelf-visual::before {
+      content: '';
+      position: absolute;
+      inset: 10% 7%;
+      background: repeating-linear-gradient(
+        to bottom,
+        #4b3528 0 5px,
+        transparent 5px 32%
+      );
+      box-shadow: inset 0 0 0 2px #1b1411;
+    }
+
+    .bookshelf-books {
+      position: absolute;
+      inset: 14% 9%;
+      background:
+        linear-gradient(90deg, #584132 0 7%, transparent 7% 10%, #6a4b38 10% 17%, transparent 17% 21%, #49372d 21% 28%, transparent 28% 32%, #73523b 32% 39%, transparent 39% 43%, #514036 43% 50%, transparent 50% 54%, #6b4935 54% 61%, transparent 61% 66%, #49352a 66% 73%, transparent 73% 77%, #76553c 77% 84%, transparent 84% 89%, #503a2e 89% 96%, transparent 96%),
+        linear-gradient(to bottom, transparent 0 29%, #2c211c 29% 33%, transparent 33% 64%, #2c211c 64% 68%, transparent 68%);
+      opacity: .9;
+    }
+
+.note-hotspot {
+  position: absolute;
+  left: 20%;
+  top: 63%;
+  width: 8%;
+  aspect-ratio: 1 / 1;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  background:  transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+    .note-paper {
+      position: absolute;
+      right: 8%;
+      bottom: 7%;
+      width: 18%;
+      height: 15%;
+      background: #cfc5ae;
+      transform: rotate(-7deg);
+      box-shadow: 0 2px 5px rgba(0,0,0,.5);
+      z-index: 1;
+    }
+
+    .clickable-modal-image {
+      display: block;
+      width: min(620px, 90vw);
+      height: min(68vh, 560px);
+      margin: 0 auto;
+      border: 1px solid #514b43;
+      background: #171513;
+      cursor: pointer;
+    }
+
+    /* 電子キー */
+    .lock-image-button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+      max-width: 250px;
+      min-height: 64px;
+      margin-top: 12px;
+      padding: 10px 14px;
+      color: #eee;
+      background: #191817;
+      border: 2px solid #5f5a52;
+      border-radius: 4px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .lock-screen-mini {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 125px;
+      padding: 8px 10px;
+      background: #080909;
+      border: 1px solid #777;
+      color: #d8d8d0;
+      font-family: monospace;
+      font-size: 22px;
+      letter-spacing: 4px;
+    }
+
+    .lock-icon-mini {
+      font-size: 26px;
+      opacity: 0.8;
+    }
+
+    .door-button {
+      display: block;
+      width: 100%;
+      max-width: 250px;
+      height: 170px;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid #5b554d;
+      background: #171513;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .door-visual {
+      display: block;
+      width: 72%;
+      height: 100%;
+      margin: 0 auto;
+      border: 5px solid #514a42;
+      background: #28231f;
+      box-shadow: inset 0 0 0 2px #171513;
+    }
+
+    .clock-visual {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin: 12px auto;
+      border-radius: 50%;
+      border: 8px solid #4d4338;
+      background: #b8a98e;
+      box-shadow: inset 0 0 0 4px #756655, 0 4px 12px rgba(0,0,0,.5);
+    }
+
+    .clock-visual::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 4px;
+      height: 42px;
+      background: #29231e;
+      transform-origin: 50% 100%;
+      transform: translate(-50%, -100%) rotate(51deg);
+    }
+
+    .clock-visual::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 4px;
+      height: 55px;
+      background: #29231e;
+      transform-origin: 50% 100%;
+      transform: translate(-50%, -100%) rotate(102deg);
+    }
+
+    .object-message {
+     display: none;
+     margin: 10px 0 0;
+     color: #c8c0b5;
+   }
+
+    /* 数字入力モーダル */
+    .keypad-window {
+      position: relative;
+      width: min(920px, 96vw);
+      padding: 22px;
+      background: #151412;
+      border: 1px solid #666057;
+      text-align: center;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      color: #ddd;
+      background:  transparent;
+      border: 1px solid #625c54;
+      font-size: 26px;
+      line-height: 1;
+      cursor: pointer;
+      touch-action: manipulation;
+      z-index: 10;
+    }
+
+    .keypad-lock-visual {
+     position: relative;
+      width: min(850px, 78vw);
+      margin: 0 auto 14px;
+      padding: 0;
+      border: none;
+      background: none;
+      box-shadow: none;
+    }
+
+.keypad-lock-visual.door-keypad-visual {
+  width: min(380px, 58vw);
+}
+    .keypad-lock-visual img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .keypad-lock-screen {
+      padding: 12px 8px;
+      background: #080909;
+      border: 1px solid #777;
+      color: #d8d8d0;
+      font-family: monospace;
+      font-size: 25px;
+      letter-spacing: 7px;
+    }
+
+    .keypad-lock-body {
+      margin-top: 10px;
+      color: #aaa39a;
+      font-size: 28px;
+    }
+
+    .keypad-title {
+      display: none;
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .keypad-display {
+      position: absolute;
+      left: 22%;
+      top: 45%;
+
+      margin: 0;
+      z-index: 5;
+
+      background:  transparent;
+      border: none;
+
+      color: #54f5e8;
+      font-family: "DSEG7Classic", monospace;
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 14px;
+
+      text-shadow:
+        0 0 4px #54f5e8,
+        0 0 10px rgba(84, 245, 232, 0.7);
+    }
+
+    .keypad-grid {
+      position: absolute;
+      left: 58.6%;
+      top: 40%;
+
+      display: grid;
+      column-gap: 11px;
+      row-gap: 8px;
+      z-index: 8;
+    }
+
+.keypad-lock-visual.door-keypad-visual .keypad-display {
+  left: 34%;
+  top: 18.5%;
+  letter-spacing: 8px;
+}
+
+
+.keypad-lock-visual.door-keypad-visual .keypad-grid {
+  left: 50%;
+  transform: translateX(-50%);
+  top: 31%;
+
+}
+
+.keypad-lock-visual.door-keypad-visual .keypad-grid-door {
+  column-gap: 17.5px;
+  row-gap: 12px;
+}
+.keypad-lock-visual.door-keypad-visual .keypad-grid-door button:last-child {
+  grid-column: 2;
+}
+
+.keypad-lock-visual.door-keypad-visual .keypad-unlock {
+  left: 30%;
+  top: 66%;
+}
+
+.keypad-lock-visual.door-keypad-visual .keypad-unlock {
+  width: 150px;
+  height: 40px;
+  border-radius: 4px;
+}
+
+    .keypad-grid-door {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .keypad-grid-desk {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .keypad-grid button,
+    .keypad-unlock {
+      width: 40px;
+      height: 40px;
+      padding: 0px;
+      font-size: 20px;
+  color: transparent;
+  background:  transparent;
+  border: none;
+
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+
+
+
+
+    .keypad-unlock {
+      position: absolute;
+      left: 48%;
+      top: 50%;
+
+      width: 50px;
+      height: 50px;
+      margin: 0;
+
+      padding: 0px;
+  color: transparent;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+
+
+      border-radius: 50%;
+      font-size: 17px;
+
+      z-index: 10;
+    }
+
+    .keypad-reset {
+      width: 100%;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    /* =========================
+       スマホ用調整
+       PCと同じHTMLで動きます
+       ========================= */
+
+@media (max-width: 900px) {
+
+  #deskDrawerImage {
+    max-width: 80%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+  }
+
+  .keypad-grid button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .keypad-grid {
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+
+  .keypad-display {
+    left: 26%;
+    top: 44%;
+  }
+
+  /* ドア電子キー：スマホ用 */
+  .keypad-lock-visual.door-keypad-visual .keypad-display {
+    top: 5%;
+  }
+
+  .keypad-lock-visual.door-keypad-visual .keypad-unlock {
+    top: 83%;
+  }
+
+}
+
+
+@media (max-width: 900px) {
+
+  #deskDrawerImage {
+    max-width: 80%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+  }
+
+  .keypad-grid button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .keypad-grid {
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+
+  .keypad-display {
+    left: 19%;
+  }
+
+}
+    @media (max-width: 640px) {
+
+  .keypad-grid button {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+
+  .keypad-unlock {
+    width: 38px;
+    height: 38px;
+  }
+
+  .keypad-window {
+     width: 88vw;
+     max-height: 82vh;
+     padding: 6px;
+     overflow: auto;
+    overflow: auto;
+  }
+
+
+@media (max-width: 640px) and (orientation: landscape) {
+
+  .keypad-window {
+    width: 90vw;
+    height: 85vh;
+    max-height: 85vh;
+    overflow: auto;
+  }
+
+
+}
+
+@media (max-width: 640px) {
+
+  .keypad-window {
+    background: yellow !important;
+  }
+
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+
+  .keypad-lock-visual.door-keypad-visual {
+    width: 35vh;
+    padding: 4px;
+  }
+
+}
+
+      .game {
+        padding: 20px 14px 40px;
+      }
+
+      .room {
+        grid-template-columns: 1fr;
+      }
+
+      .object-wide {
+        grid-column: auto;
+      }
+
+      .object {
+        padding: 15px;
+      }
+
+      .lock-area {
+        align-items: stretch;
+      }
+
+      input.code {
+        width: 100px;
+      }
+
+      button.action {
+        flex: 1;
+        min-width: 130px;
+      }
+
+      .modal {
+        padding: 8px;
+      }
+
+      .modal-window {
+        padding: 10px;
+        max-height: 96vh;
+      }
+
+      .modal-image-button img {
+        max-height: 68vh;
+      }
+    }
+
+.note-modal-window {
+  position: relative;
+  width: min(760px, 96vw);
+  max-height: 94vh;
+  overflow: auto;
+  padding: 18px;
+  background: #111;
+  border: 1px solid #555;
+  text-align: center;
+}
+
+        .clock-visual,
+        .desk-visual,
+        .bookshelf-visual,
+        .door-visual {
+          display: none;
+        }
+
+
+      .room-background {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        z-index: 0;
+      }
+
+     #introModal {
+       display: flex;
+       position: fixed;
+       inset: 0;
+       z-index: 3000;
+       align-items: center;
+       justify-content: center;
+       padding: 20px;
+       background: rgba(0, 0, 0, 0.65);
+     }
+
+     .intro-window {
+       position: relative;
+       width: min(520px, 90vw);
+       padding: 32px 28px;
+       background: #151412;
+       border: 1px solid #666057;
+       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+       text-align: center;
+     }
+
+     .intro-window h2 {
+       margin: 0 0 24px;
+       font-size: 24px;
+       letter-spacing: 0.12em;
+     }
+
+     .intro-window p {
+       margin: 8px 0;
+       color: #d8d1c6;
+     }
+
+     .intro-close {
+       position: absolute;
+       top: 8px;
+       right: 10px;
+       width: 38px;
+       height: 38px;
+       padding: 0;
+       color: #ddd;
+       background:  transparent;
+       border: 1px solid #625c54;
+       font-size: 26px;
+       line-height: 1;
+       cursor: pointer;
+     }
+
+
+     .room-hotspot {
+       position: absolute;
+       z-index: 10;
+       padding: 0;
+       border: 0;
+       background:  transparent;
+       cursor: pointer;
+     }
+
+
+    .clock-hotspot {
+      left: 63%;
+      top: 15%;
+      width: 9%;
+      height: 65%;
+      background:  transparent;
+      z-index: 10;
+    }
+
+     .room > .object {
+       display: none;
+     }
+
+        .bookshelf-hotspot {
+          left: 22%;
+          top: 13%;
+          width: 16%;
+          height: 56%;
+          background:  transparent;
+          z-index: 10;
+        }
+
+
+
+        .note-room-hotspot {
+          left: 34%;
+          top: 59%;
+          width: 3%;
+          aspect-ratio: 1 / 1;
+          z-index: 11;
+          padding: 0;
+          border: 0;
+          background:  transparent;
+          cursor: pointer;
+          touch-action: manipulation;
+        }
+
+
+
+        .desk-hotspot {
+          left: 11%;
+          top: 63%;
+          width: 10%;
+          height: 14%;
+          background:  transparent;
+          z-index: 10;
+        }
+
+
+        .painting-hotspot {
+          left: 42%;
+          top: 12%;
+          width: 17%;
+          height: 40%;
+          background:  transparent;
+          z-index: 10;
+        }
+
+
+    .door-hotspot {
+      left: 84%;
+      top: 6%;
+      width: 17%;
+      height: 90%;
+      background:  transparent;
+      z-index: 10;
+    }
+
+    .door-lock-hotspot {
+      left: 93%;
+      top: 33%;
+      width: 5%;
+      height: 17%;
+      background:  transparent;
+      z-index: 11;
+    }
+
+
+
+    .desk-drawer-hotspot {
+      left: 12%;
+      top: 60%;
+      width: 14%;
+      height: 18%;
+      background: transparent;
+      z-index: 11;
+      display: none;
+    }
+
+
+
+      .room-message {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+
+        padding: 22px 30px;
+
+        color: #eee;
+        background: rgba(0, 0, 0, 0.78);
+
+        font-size: 18px;
+        line-height: 1.6;
+        text-align: center;
+
+        display: none;
+        pointer-events: none;
+      }
+
+@media (max-width: 900px) {
+
+  #deskDrawerImage {
+    max-width: 80%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+  }
+
+  .keypad-grid {
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+
+.keypad-display {
+  left: 19%;
+}
+
+
+}
+
+
+  </style>
+</head>
+
+<body>
+
+<audio id="bgm" src="この部屋には、誰もいないようだ.mp3"></audio>
+<audio id="seNote" src="紙を広げる1.mp3"></audio>
+<audio id="seDrawer" src="引き出しを開ける.mp3"></audio>
+<audio id="seDoor" src="ドアを開ける3.mp3"></audio>
+<audio id="seKeyWrong" src="ビープ音4.mp3"></audio>
+<audio id="seKeyInput" src="決定ボタンを押す2.mp3"></audio>
+<audio id="seHeart" src="心臓の鼓動1.mp3"></audio>
+
+
+  <div id="introModal">
+    <div class="intro-window">
+      <button class="intro-close" type="button" onclick="closeIntro()">×</button>
+
+      <h2>脱出ゲーム<br>「地下の密室」</h2>
+
+      <p>ここはどこだ？</p>
+      <p>いつのまにか知らない部屋にいた。</p>
+      <p>状況はよく分からないけど、</p>
+      <p>この部屋を調べたらここから出られるだろうか？</p>
+    </div>
+</div>
+  <main class="game" id="gameScreen">
+
+    <section class="room" onclick="clearRoomMessage(event)">
+    <img src="room.png" alt="部屋" class="room-background">
+
+      <div
+        id="roomMessage"
+        class="room-message"
+        onclick="this.style.display = 'none'"
+      ></div>
+
+
+      <!-- 時計 -->
+      <button
+        class="room-hotspot clock-hotspot"
+        type="button"
+        onclick="lookAtClock(event)"
+        aria-label="時計を見る"
+      ></button>
+
+        <button
+          class="room-hotspot bookshelf-hotspot"
+          type="button"
+          onclick="lookAtBookshelf(event)"
+          aria-label="本棚を見る"
+        ></button>
+
+
+        <button
+          class="room-hotspot note-room-hotspot"
+          type="button"
+          onclick="findNote(); event.stopPropagation();"
+          aria-label="本棚の上にあるメモを見る"
+        ></button>
+
+
+
+
+        <button
+          class="room-hotspot desk-hotspot"
+          type="button"
+          onclick="openDeskKeypad()"
+          aria-label="机のロックを見る"
+        ></button>
+
+
+        <button
+          class="room-hotspot desk-drawer-hotspot"
+          type="button"
+          onclick="openDeskDrawer(event)"
+          aria-label="机の引き出しを見る"
+        ></button>
+
+
+
+        <button
+          class="room-hotspot painting-hotspot"
+          type="button"
+          onclick="clickPaintingFromRoom()"
+          aria-label="絵を見る"
+        ></button>
+
+<button
+  class="room-hotspot door-hotspot"
+  type="button"
+  onclick="lookAtDoor(event)"
+  aria-label="扉を見る"
+></button>
+
+        <button
+          class="room-hotspot door-lock-hotspot"
+          type="button"
+          onclick="openDoorKeypad()"
+          aria-label="ドアの電子ロック"
+        ></button>
+
+      <!-- 絵 -->
+      <div class="object object-wide">
+        <h2>絵</h2>
+        <button class="painting-button" type="button" onclick="clickPaintingFromRoom()">
+          <img id="roomPainting" src="" alt="古い肖像画">
+        </button>
+      </div>
+
+      <!-- 机 -->
+      <div class="object">
+        <h2>机</h2>
+        <button id="deskPicture"  class="css-picture-button" type="button" onclick="lookAtDesk()" aria-label="机を調べる">
+          <div class="desk-visual" aria-hidden="true"></div>
+        </button>
+        <p id="deskDescription" class="object-message"></p>
+        <button class="lock-image-button desk-lock-button" type="button" onclick="openDeskKeypad()" aria-label="机の電子キーを開く">
+          <span class="lock-screen-mini">□□□□</span>
+          <span class="lock-icon-mini">▣</span>
+        </button>
+
+        <div id="deskClue" class="clue">
+          <strong>引き出しの内側</strong>
+          <div id="deskClueImageArea">
+            <p id="deskClueText"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 本棚 -->
+      <div class="object">
+        <h2>本棚</h2>
+        <div class="css-picture-button" onclick="lookAtBookshelf()" role="button" tabindex="0" aria-label="本棚を調べる">
+          <div class="bookshelf-visual">
+            <div class="bookshelf-books" aria-hidden="true"></div>
+            <div class="note-paper" aria-hidden="true"></div>
+            <button class="note-hotspot" type="button" onclick="event.stopPropagation(); findNote()" aria-label="本棚の右下にあるメモを見る"></button>
+          </div>
+        </div>
+        <p id="bookshelfDescription" class="object-message"></p>
+      </div>
+
+      <!-- ドア -->
+      <div class="object">
+        <h2>ドア</h2>
+        <button class="door-button" type="button" onclick="lookAtDoor()" aria-label="ドアを調べる">
+          <span class="door-visual"></span>
+        </button>
+        <p id="doorDescription" class="object-message"></p>
+
+        <button class="lock-image-button door-lock-button" type="button" onclick="openDoorKeypad()" aria-label="ドアの電子キーを開く">
+          <span class="lock-screen-mini">□□□□</span>
+          <span class="lock-icon-mini">▣</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+
+  <!-- 数字入力画面 -->
+  <div id="keypadModal" class="modal">
+    <div class="keypad-window">
+      <button id="keypadClose" class="modal-close" type="button" onclick="closeKeypad()">×</button>
+
+    <div class="keypad-lock-visual" aria-hidden="true">
+      <img id="keypadLockImage" src="desk_keypad.png" alt="" />
+
+  <div id="keypadDisplay" class="keypad-display">□□□□</div>
+
+  <div id="keypadButtons" class="keypad-grid"></div>
+
+  <button
+    id="keypadUnlock"
+    class="keypad-unlock"
+    type="button"
+    onclick="submitKeypad()"
+  ></button>
+
+    </div>
+
+    <p id="keypadTitle" class="keypad-title"></p>
+
+    </div>
+  </div>
+
+  <!-- 絵の拡大画面 -->
+  <div id="pictureModal" class="modal">
+  <div class="modal-window" style="position:relative;">
+      <button class="modal-close" type="button" onclick="closePictureModal()">×</button>
+      <button id="modalImageButton" class="modal-image-button" onclick="clickPictureInModal()">
+        <div class="painting-layer">
+          <img id="modalPainting" src="" alt="拡大された肖像画">
+          <img id="meltedPaintingOverlay" alt="" aria-hidden="true">
+        </div>
+     </button>
+
+      <p id="modalMessage" class="modal-message"></p>
+      <p id="modalSub" class="modal-sub"></p>
+    </div>
+  </div>
+
+
+  <!-- 右下のメモ -->
+<div id="hiddenNote" class="modal">
+  <div class="modal-window" style="position:relative;">
+    <button class="modal-close" type="button" onclick="closeNote()">×</button>
+
+    <img id="noteImage" src="" alt="メモ"
+         style="display:block; max-width:70%; max-height:70vh; width:auto; height:auto; margin:0 auto;">
+  </div>
+</div>
+
+  <!-- 机の引き出し -->
+  <div id="deskDrawerModal" class="modal">
+    <div class="modal-window" style="position:relative;">
+      <button class="modal-close" type="button" onclick="closeDeskDrawer()">×</button>
+      <img id="deskDrawerImage" src="" alt="机の引き出しの中" style="max-width:100%;">
+    </div>
+  </div>
+
+  <!-- ★ここに追加★ -->
+
+  <!-- ラスト -->
+  <div id="ending" onclick="advanceEnding()">
+    <div class="ending-inner">
+
+      <div id="endingMessage" class="ending-message"></div>
+<div id="endingThanks" class="ending-thanks"></div>
+
+      <img
+        id="ghostImage"
+        src=""
+        alt="暗闇にいる人影"
+      >
+
+    </div>
+  </div>
+
+
+
+
+  <script>
+
+let clockHotspotBase = null;
+
+function setupClockResponsive() {
+  const room = document.querySelector(".room");
+  const image = document.querySelector(".room-background");
+  const clock = document.querySelector(".clock-hotspot");
+
+  if (!room || !image || !clock) return;
+
+  const roomRect = room.getBoundingClientRect();
+  const clockRect = clock.getBoundingClientRect();
+
+  const imageWidth = image.naturalWidth;
+  const imageHeight = image.naturalHeight;
+
+  const scale = Math.max(
+    roomRect.width / imageWidth,
+    roomRect.height / imageHeight
+  );
+
+  const displayedWidth = imageWidth * scale;
+  const displayedHeight = imageHeight * scale;
+
+  const cropX = (displayedWidth - roomRect.width) / 2;
+  const cropY = (displayedHeight - roomRect.height) / 2;
+
+  clockHotspotBase = {
+    imageX: (clockRect.left - roomRect.left + cropX) / scale,
+    imageY: (clockRect.top - roomRect.top + cropY) / scale,
+    imageWidth: clockRect.width / scale,
+    imageHeight: clockRect.height / scale
+  };
+}
+
+// window.addEventListener("load", setupClockResponsive);
+
+function updateClockResponsive() {
+  if (!clockHotspotBase) return;
+
+  const room = document.querySelector(".room");
+  const clock = document.querySelector(".clock-hotspot");
+
+  if (!room || !clock) return;
+
+  const roomRect = room.getBoundingClientRect();
+
+  const image = document.querySelector(".room-background");
+
+  const scale = Math.max(
+    roomRect.width / image.naturalWidth,
+    roomRect.height / image.naturalHeight
+  );
+
+  const displayedWidth = image.naturalWidth * scale;
+  const displayedHeight = image.naturalHeight * scale;
+
+  const cropX = (displayedWidth - roomRect.width) / 2;
+  const cropY = (displayedHeight - roomRect.height) / 2;
+
+  clock.style.left =
+    (clockHotspotBase.imageX * scale - cropX) + "px";
+
+  clock.style.top =
+    (clockHotspotBase.imageY * scale - cropY) + "px";
+
+  clock.style.width =
+    (clockHotspotBase.imageWidth * scale) + "px";
+
+  clock.style.height =
+    (clockHotspotBase.imageHeight * scale) + "px";
+}
+
+window.addEventListener("resize", updateClockResponsive);
+
+    /* ==========================================================
+       ★★★ ここだけ見れば差し替えやすい場所 ★★★
+
+       画像・セリフ・謎の答えは、できるだけここにまとめています。
+
+       画像を変えるとき：
+         "painting.png" → "新しいファイル名.png"
+
+       セリフを変えるとき：
+         "うわっ……" → "別のセリフ"
+
+       という感じでOK。
+
+       画像ファイルは、このHTMLと同じフォルダに置いてください。
+       ========================================================== */
+
+    const CONFIG = {
+
+      images: {
+        roomPainting: "painting.png",
+        meltedPainting: "painting_melted.png",
+        paintingEyes: "painting_eyes.png",
+        note: "note.png",
+
+        // 「時計 − 絵」の図を作ったら、ここにファイル名を書く
+        deskClueImage: "",
+
+       deskDrawer: "desk.png",
+
+
+        // ラスト4枚。今は空欄なので、後で画像を入れられます。
+        // 例："ghost_1.png"
+        endingImages: [
+        "ghost_1.png",
+        "ghost_2.png",
+        "ghost_3.png",
+        "ghost_4.png"
+      ]
+      },
+
+      answers: {
+        // 時計 3:17 → 机
+        desk: "0317",
+
+        // 絵の数字は後で確定
+        picture: 6814
+      },
+
+      text: {
+        intro: "ここは、どこだ？",
+
+        clock: "時計は3時17分で止まっている。",
+        deskLook: "こんなに古そうな机に、電子キー？",
+        bookshelfLook1: "分厚い本がたくさんある。",
+
+        deskOpen: "カチッ。",
+        deskWrong: "違ったみたいだ。",
+
+        // deskClueImage が空欄の間だけ、この文章を表示
+        deskClueFallback: "時計 − 絵",
+
+        pictureAfterMelt: "うわっ……",
+        pictureChanged: "絵が……変わった？",
+        pictureGaze: "どこを見てるんだろう……本棚のあたり？",
+
+        note: "数字の順番が書かれている。",
+
+        doorLook1: "古いけど、頑丈そうな扉だ。",
+        doorLook2: "とても開きそうにない。",
+        doorOpen: "開いた！！",
+        doorWrong: "違う……開かない。",
+
+        final: "……誰かいる。"
+      },
+
+      // 絵の数字を四隅などに置く場合のメモ。
+      // 実際の画像側で配置するので、ここでは数字だけ管理。
+      // 後で数字を変更したくなったらここを変更。
+      pictureDigits: ["3", "5", "7", "2"]
+    };
+
+
+    /* ==========================================================
+       ゲームの状態
+       ========================================================== */
+
+    let pictureStep = 0;
+
+    /*
+      pictureStep
+      0 = まだ絵を調べていない
+      1 = 拡大した通常絵
+      2 = 溶けた絵＋「うわっ……」
+      3 = 「絵が……変わった？」
+      4 = 「……どこを見てるんだろう。」
+      5 = 右下のメモを発見済み
+    */
+
+    let deskUnlocked = false;
+    let deskDrawerAutoOpened = false;
+    let noteFound = false;
+    let doorLookStep = 0;
+    let keypadTarget = "";
+    let keypadValue = "";
+
+
+    /* ==========================================================
+       初期表示
+       ========================================================== */
+
+    document.getElementById("roomPainting").src = CONFIG.images.roomPainting;
+    document.getElementById("deskClueText").textContent = CONFIG.text.deskClueFallback;
+    document.getElementById("deskDescription").textContent = "";
+    document.getElementById("bookshelfDescription").textContent = "";
+    document.getElementById("doorDescription").textContent = "";
+
+    /* ==========================================================
+       導入
+       ========================================================== */
+
+const bgm = document.getElementById("bgm");
+
+function closeIntro() {
+  document.getElementById("introModal").style.display = "none";
+
+  bgm.volume = 0.15;
+  bgm.play();
+}
+
+bgm.addEventListener("ended", () => {
+  setTimeout(() => {
+    bgm.currentTime = 0;
+    bgm.play();
+  }, 500);
+});
+
+
+
+    /* ==========================================================
+       時計
+       ========================================================== */
+
+    function lookAtClock(event) {
+      event.stopPropagation();
+
+      const message = document.getElementById("roomMessage");
+
+      if (message.style.display === "block") {
+        message.style.display = "none";
+        return;
+      }
+
+      clearObjectMessages();
+
+      message.textContent = CONFIG.text.clock;
+      message.style.display = "block";
+    }
+
+
+    function clearRoomMessage(event) {
+      const message = document.getElementById("roomMessage");
+
+      if (message.style.display === "block") {
+        message.style.display = "none";
+      }
+    }
+
+
+    function lookAtDesk() {
+     clearObjectMessages();
+
+
+     const message = document.getElementById("deskDescription");
+     message.textContent = CONFIG.text.deskLook;
+     message.style.display = "block";
+     deskMessageVisible = true;
+   }
+
+    let deskMessageVisible = false;
+
+     function clearObjectMessages() {
+      const clock = document.getElementById("clockDescription");
+      const desk = document.getElementById("deskDescription");
+      const bookshelf = document.getElementById("bookshelfDescription");
+      const door = document.getElementById("doorDescription");
+      const room = document.getElementById("roomMessage");
+
+      if (clock) clock.style.display = "none";
+      if (desk) desk.style.display = "none";
+      if (bookshelf) bookshelf.style.display = "none";
+      if (door) door.style.display = "none";
+      if (room) room.style.display = "none";
+    }
+
+    function lookAtBookshelf(event) {
+      event.stopPropagation();
+
+      const message = document.getElementById("roomMessage");
+
+      if (message.style.display === "block") {
+        message.style.display = "none";
+        return;
+      }
+
+      clearObjectMessages();
+
+      message.textContent = CONFIG.text.bookshelfLook1;
+      message.style.display = "block";
+    }
+    /* ==========================================================
+       絵：部屋からクリック
+       ========================================================== */
+
+function clickPaintingFromRoom() {
+  pictureStep = pictureStep === 0 ? 1 : 5;
+
+  document.getElementById("pictureModal").style.display = "flex";
+
+  const painting = document.getElementById("modalPainting");
+
+  // 1回目：通常絵
+  if (pictureStep === 1) {
+    painting.src = CONFIG.images.roomPainting;
+
+    painting.classList.remove("painting-blink");
+
+    document.getElementById("modalMessage").textContent = "";
+    document.getElementById("modalSub").textContent = "";
+
+    // 数秒後 → 絵が変化
+    setTimeout(() => {
+      painting.classList.remove("painting-blink");
+
+      requestAnimationFrame(() => {
+        painting.classList.add("painting-blink");
+      });
+
+      setTimeout(() => {
+        painting.src = CONFIG.images.meltedPainting;
+
+        document.getElementById("modalMessage").textContent =
+          CONFIG.text.pictureAfterMelt;
+      }, 170);
+
+    }, 1200);
+
+
+    // さらに少し待つ → 「絵が……変わった？」
+    setTimeout(() => {
+      document.getElementById("modalMessage").textContent =
+        CONFIG.text.pictureChanged;
+    }, 2500);
+
+
+    // さらに少し待つ → 「どこを見てるんだろう……」
+    // ＋目の絵
+    setTimeout(() => {
+      pictureStep = 4;
+
+      painting.src = CONFIG.images.paintingEyes;
+
+      document.getElementById("modalMessage").textContent =
+        CONFIG.text.pictureGaze;
+
+      document.getElementById("modalSub").textContent = "";
+    }, 5000);
+
+    return;
+  }
+
+  // 2回目以降：今まで通り溶けた絵から開始
+  painting.src = CONFIG.images.meltedPainting;
+
+  painting.classList.remove("painting-blink");
+
+  document.getElementById("modalMessage").textContent = "";
+  document.getElementById("modalSub").textContent = "";
+}
+
+
+    /* ==========================================================
+       絵：拡大画面でクリック
+       ========================================================== */
+
+    function clickPictureInModal() {
+
+  // 1回目の自動演出中はクリックしても進まない
+  if (pictureStep === 1) {
+    return;
+  }
+
+
+      if (pictureStep === 1) {
+        // 通常絵 → 溶けた絵
+        pictureStep = 2;
+
+        const painting = document.getElementById("modalPainting");
+        painting.classList.remove("painting-blink");
+
+        requestAnimationFrame(() => {
+          painting.classList.add("painting-blink");
+        });
+
+        setTimeout(() => {
+          painting.src = CONFIG.images.meltedPainting;
+        }, 170);
+
+
+        overlay.style.display = "none";
+
+        document.getElementById("modalMessage").textContent = CONFIG.text.pictureAfterMelt;
+        document.getElementById("modalSub").textContent = "";
+        return;
+      }
+
+      if (pictureStep === 2) {
+        // 「うわっ……」→「絵が……変わった？」
+        pictureStep = 3;
+
+        document.getElementById("modalMessage").textContent = CONFIG.text.pictureChanged;
+        document.getElementById("modalSub").textContent = "";
+        return;
+      }
+
+      if (pictureStep === 3) {
+       pictureStep = 4;
+
+       const painting = document.getElementById("modalPainting");
+       painting.src = CONFIG.images.paintingEyes;
+
+       document.getElementById("modalMessage").textContent = CONFIG.text.pictureGaze;
+       document.getElementById("modalSub").textContent = "";
+       return;
+     }
+
+      if (pictureStep === 4) {
+        pictureStep = 5;
+
+        const painting = document.getElementById("modalPainting");
+        painting.src = CONFIG.images.meltedPainting;
+      
+        document.getElementById("modalMessage").textContent = "";
+        document.getElementById("modalSub").textContent = "";
+        return;
+      }
+
+      if (pictureStep === 5) {
+        pictureStep = 4;
+
+        const painting = document.getElementById("modalPainting");
+        painting.src = CONFIG.images.paintingEyes;
+
+        document.getElementById("modalMessage").textContent = CONFIG.text.pictureGaze;
+        document.getElementById("modalSub").textContent = "";
+        return;
+      }
+    }
+
+
+    /* ==========================================================
+       右下のメモ
+       ※今は仮の「メモ発見ボタン」を後で実際の画像位置に置き換えられる構造
+       ========================================================== */
+
+    function findNote() {
+      noteFound = true;
+      pictureStep = 5;
+
+      const image = document.getElementById("noteImage");
+      image.src = CONFIG.images.note;
+
+      document.getElementById("seNote").currentTime = 0;
+      document.getElementById("seNote").play();
+
+        setTimeout(() => {
+    document.getElementById("hiddenNote").style.display = "flex";
+  }, 300);
+    }
+
+    function closeNote() {
+      document.getElementById("hiddenNote").style.display = "none";
+    }
+
+
+function closePictureModal() {
+  document.getElementById("pictureModal").style.display = "none";
+  pictureStep = 5;
+}
+
+
+
+    /* ==========================================================
+       電子キー
+       ========================================================== */
+
+    function openDeskKeypad() {
+      openKeypad("desk", "机の電子キー");
+    }
+
+
+
+
+function openDeskDrawer(event) {
+  if (event) {
+    event.stopPropagation();
+  }
+
+  const seDrawer = document.getElementById("seDrawer");
+  seDrawer.currentTime = 0;
+  seDrawer.play();
+
+      setTimeout(() => {
+        const image = document.getElementById("deskDrawerImage");
+        image.src = CONFIG.images.deskDrawer;
+
+        document.getElementById("deskDrawerModal").style.display = "flex";
+      }, 700);
+    }
+
+
+    function closeDeskDrawer() {
+      document.getElementById("deskDrawerModal").style.display = "none";
+    }
+
+    function openDoorKeypad() {
+      openKeypad("door", "ドアの電子キー");
+    }
+
+
+    function openKeypad(target, title) {
+      keypadTarget = target;
+      keypadValue = "";
+      document.getElementById("keypadTitle").textContent = title;
+
+      document.getElementById("keypadLockImage").src =
+  target === "desk"
+    ? "desk_keypad.png"
+    : "door_keypad.png";
+
+if (
+  target === "door" &&
+  window.innerWidth > window.innerHeight &&
+  window.innerWidth <= 900
+) {
+  document.getElementById("keypadLockImage").src = "door_keypad_landscape.png";
+}
+
+     const lockVisual = document.querySelector(".keypad-lock-visual");
+     lockVisual.classList.toggle("door-keypad-visual", target === "door");
+
+      // 電子キーのテンキーを毎回生成する。
+      // 机は横長、ドアは一般的な3列配置。
+      const buttons = document.getElementById("keypadButtons");
+      buttons.innerHTML = "";
+      buttons.className = target === "desk" ? "keypad-grid keypad-grid-desk" : "keypad-grid keypad-grid-door";
+
+      const numbers = target === "desk"
+        ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+        : ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+
+      numbers.forEach(number => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = number;
+        button.onclick = () => pressKeypadNumber(number);
+        buttons.appendChild(button);
+      });
+
+      updateKeypadDisplay();
+      document.getElementById("keypadModal").style.display = "flex";
+    }
+
+    function closeKeypad() {
+      document.getElementById("keypadModal").style.display = "none";
+      keypadTarget = "";
+      keypadValue = "";
+    }
+
+    function pressKeypadNumber(number) {
+     if (keypadValue.length >= 4) return;
+
+     keypadValue += number;
+
+     const seKeyInput = document.getElementById("seKeyInput");
+     seKeyInput.currentTime = 0;
+     seKeyInput.play();
+
+     updateKeypadDisplay();
+   }
+
+    function updateKeypadDisplay() {
+      const display = document.getElementById("keypadDisplay");
+
+      let result = "";
+
+      for (let i = 0; i < 4; i++) {
+        if (i < keypadValue.length) {
+          result += keypadValue[i];
+        } else {
+          result += "_";
+        }
+      }
+
+      display.textContent = result;
+    }
+
+
+    function resetKeypad() {
+      keypadValue = "";
+      updateKeypadDisplay();
+    }
+
+function showWrongCodeMessage(text) {
+  const message = document.getElementById("roomMessage");
+
+  message.textContent = text;
+  message.style.color = "#eee";
+  message.style.zIndex = "1100";
+  message.style.display = "block";
+
+  setTimeout(() => {
+    message.style.display = "none";
+  }, 2000);
+}
+
+    function submitKeypad() {
+      if (keypadValue.length !== 4) return;
+
+      if (keypadTarget === "desk") {
+        checkDeskCode(keypadValue);
+      } else if (keypadTarget === "door") {
+        checkDoorCode(keypadValue);
+      }
+    }
+
+    function checkDeskCode(code) {
+      if (code === CONFIG.answers.desk) {
+        deskUnlocked = true;
+        closeKeypad();
+
+
+
+        document.querySelector(".desk-hotspot").style.display = "none";
+        document.querySelector(".desk-drawer-hotspot").style.display = "block";
+
+    if (!deskDrawerAutoOpened) {
+      deskDrawerAutoOpened = true;
+      openDeskDrawer();
+    }
+
+
+        document.getElementById("deskClue").style.display = "block";
+
+        if (CONFIG.images.deskClueImage !== "") {
+          const area = document.getElementById("deskClueImageArea");
+          area.innerHTML =
+            '<img src="' + CONFIG.images.deskClueImage +
+            '" alt="時計から絵を引く図" style="max-width:100%;">';
+        }
+      } else {
+        const seKeyWrong = document.getElementById("seKeyWrong");
+        seKeyWrong.currentTime = 0;
+        seKeyWrong.play();
+
+        showWrongCodeMessage(CONFIG.text.deskWrong);
+        resetKeypad();
+      }
+    }
+
+
+    /* ==========================================================
+       ドア
+       ========================================================== */
+
+  function lookAtDoor(event) {
+    event.stopPropagation();
+
+    const message = document.getElementById("roomMessage");
+
+    if (message.style.display === "block") {
+      message.style.display = "none";
+      return;
+    }
+
+    clearObjectMessages();
+
+    if (doorLookStep === 0) {
+      message.textContent = CONFIG.text.doorLook1;
+      doorLookStep = 1;
+    } else {
+      message.textContent = CONFIG.text.doorLook2;
+    }
+
+    message.style.display = "block";
+  }
+
+function checkDoorCode(code) {
+  if (code === "6497") {
+    closeKeypad();
+
+
+
+    const bgm = document.getElementById("bgm");
+    bgm.pause();
+
+    const seDoor = document.getElementById("seDoor");
+    seDoor.currentTime = 0;
+    seDoor.play();
+
+    startEnding();
+  } else {
+    const seKeyWrong = document.getElementById("seKeyWrong");
+    seKeyWrong.currentTime = 0;
+    seKeyWrong.play();
+
+    showWrongCodeMessage(CONFIG.text.doorWrong);
+    resetKeypad();
+  }
+}
+    /* ==========================================================
+       ラスト
+       ========================================================== */
+
+let endingStep = 0;
+
+function startEnding() {
+  endingStep = 0;
+
+
+  document.getElementById("gameScreen").style.display = "none";
+  document.getElementById("ending").style.display = "flex";
+  document.getElementById("endingMessage").textContent = CONFIG.text.doorOpen;
+  document.getElementById("ghostImage").style.display = "none";
+}
+
+function advanceEnding() {
+  if (endingStep === 0) {
+  endingStep = 1;
+
+  showEndingFrame(0, "");
+
+  setTimeout(() => {
+    const seHeart = document.getElementById("seHeart");
+    seHeart.currentTime = 0;
+    seHeart.volume = 0.08;
+    seHeart.loop = true;
+    seHeart.play();
+  }, 1500);
+
+setTimeout(() => {
+  const message = document.getElementById("endingMessage");
+  const text = "……誰かいる";
+
+  message.textContent = "";
+
+  let i = 0;
+
+  const typing = setInterval(() => {
+    message.textContent += text[i];
+    i++;
+
+    if (i >= text.length) {
+      clearInterval(typing);
+    }
+  }, 150);
+
+}, 700);
+
+  return;
+}
+
+
+
+
+if (endingStep === 1) {
+  endingStep = 2;
+
+  // 二枚目の画像を表示
+  showEndingFrame(1, "");
+
+  // 少し待ってから一文字ずつ表示
+  setTimeout(() => {
+    const message = document.getElementById("endingMessage");
+    const text = "近づいてくる";
+
+    message.textContent = "";
+
+    let i = 0;
+
+    const typing = setInterval(() => {
+      message.textContent += text[i];
+      i++;
+
+      if (i >= text.length) {
+        clearInterval(typing);
+      }
+    }, 150);
+
+  }, 700);
+
+  return;
+}
+
+
+
+
+if (endingStep === 2) {
+  endingStep = 3;
+
+  // 3枚目の画像を表示
+  showEndingFrame(2, "");
+
+  // 少し待って「あ」
+  setTimeout(() => {
+    const message = document.getElementById("endingMessage");
+
+    message.textContent = "あ";
+
+    // 少し間を置いて「・・・」を追加
+    setTimeout(() => {
+      message.textContent = "あ・・・";
+    }, 700);
+
+  }, 700);
+
+  return;
+}
+
+
+    if (endingStep === 3) {
+     endingStep = 4;
+
+     const seHeart = document.getElementById("seHeart");
+     seHeart.pause();
+     seHeart.currentTime = 0;
+
+     showEndingFrame(3, "");
+
+     setTimeout(() => {
+        startEndScreen();
+     }, 2500);
+
+     return;
+   }
+}
+
+function showEndingFrame(index, message) {
+  const ghost = document.getElementById("ghostImage");
+  const file = CONFIG.images.endingImages[index];
+
+  document.getElementById("endingMessage").textContent = message;
+
+  if (file !== "") {
+    ghost.src = file;
+    ghost.style.display = "block";
+    ghost.classList.remove("visible", "close");
+
+    requestAnimationFrame(() => {
+      ghost.classList.add("visible");
+    });
+  } else {
+    ghost.style.display = "block";
+  }
+}
+
+function startEndScreen() {
+  const ending = document.getElementById("ending");
+  const message = document.getElementById("endingMessage");
+  const thanks = document.getElementById("endingThanks");
+
+  // 画面を暗くする
+  ending.classList.add("fade-to-black");
+
+  // ENDを中央に表示
+  setTimeout(() => {
+    message.textContent = "END";
+    message.classList.add("end-title");
+  }, 2500);
+
+  // 下に「プレイありがとうございました。」を表示
+  setTimeout(() => {
+    thanks.textContent = "プレイありがとうございました。";
+    thanks.classList.add("visible");
+  }, 4000);
+}
+
+  </script>
+</body>
+</html>
